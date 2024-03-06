@@ -1,5 +1,5 @@
-wordScoresFilePath = "/home/pimania/projects/sentimentAnalysis/wordScores.txt"
-delaySeconds = 100
+wordScoresFilePath = "/home/ap/wordScores.txt"
+delaySeconds = 500
 
 
 def ensureWordScoresFile(wordScoresFilePath):
@@ -10,25 +10,6 @@ def ensureWordScoresFile(wordScoresFilePath):
        with open(wordScoresFilePath, "w") as wordScoresFile:
           pass
 
-
-def getTwitterText():
-   import tweepy
-   try:
-      auth = tweepy.auth.OAuthHandler("kqSndhybqhsSBcrY83ZpK2dkH", "EoJm0OmlZZmyhJOln7vIJg8en97NhVZQx0u9QSKKI7T9B7hvUg")
-      auth.set_access_token("3685943952-BTfjGnef7QNdqnh9EMHtO5SInUcE2ZaROX9MMi8", "vD1q0887Cof3N8GKNQMHHW2Ad5vjFJCTsBONJZ47zNqC9")
-      api = tweepy.API(auth)
-   except:
-      return False
-   
-   text = " ".join([tweet._json["text"] for tweet in api.search(q="good", count=100)]).lower() + " " + " ".join([tweet._json["text"] for tweet in api.search(q="bad", count=100)]).lower()
-   
-   sentences = text.replace("?", ".").replace("!", ".").split(". ")
-   
-   goodSentences = ". ".join([sentence for sentence in sentences if "good" in sentence])
-   badSentences = ". ".join([sentence for sentence in sentences if "bad" in sentence])
-   
-   return [goodSentences, badSentences]
-   
 
 def getBadGoodRatio(wordScores):
    totalGoodScore = 0
@@ -43,12 +24,28 @@ def getBadGoodRatio(wordScores):
    return abs(totalBadScore) / totalGoodScore
 
 
-def getWordScores(goodText, badText):
+def getSynonyms(word):
+   from PyDictionary import PyDictionary
+   dictionary = PyDictionary()
+   return dictionary.synonym(word)[:3]
+
+def getWordScores(goodSynonyms, badSynonyms):
    import string
    import re
-   
+   import tweepy
+  
    regex = re.compile('[%s]' % re.escape(string.punctuation))
    wordScores = {}
+    
+   try:
+      auth = tweepy.auth.OAuthHandler("kqSndhybqhsSBcrY83ZpK2dkH", "EoJm0OmlZZmyhJOln7vIJg8en97NhVZQx0u9QSKKI7T9B7hvUg")
+      auth.set_access_token("3685943952-BTfjGnef7QNdqnh9EMHtO5SInUcE2ZaROX9MMi8", "vD1q0887Cof3N8GKNQMHHW2Ad5vjFJCTsBONJZ47zNqC9")
+      api = tweepy.API(auth)
+   except:
+      return False
+   
+   goodText = " ".join([tweet._json["text"] for tweet in api.search(q=" OR ".join(goodSynonyms), count=100)]).lower()
+   badText = " ".join([tweet._json["text"] for tweet in api.search(q=" OR ".join(badSynonyms), count=100)]).lower()
 
    goodWords = regex.sub('', goodText).split()
    badWords = regex.sub('', badText).split()
@@ -65,12 +62,11 @@ def getWordScores(goodText, badText):
 def getLastWordScores(wordScoresFilePath):
    import json
    
-   with open(wordScoresFilePath) as wordScoresFile:
+   with open("wordScores.txt") as wordScoresFile:
       try:
          lastWordScores = json.load(wordScoresFile)
       except:
          lastWordScores = {}
-         
    return lastWordScores
    
    
@@ -100,14 +96,17 @@ def main():
       time.sleep(delaySeconds)
       ensureWordScoresFile(wordScoresFilePath)
       lastWordScores = getLastWordScores(wordScoresFilePath) 
-         
       try:
-        twitterGoodtext, twitterBadtext = getTwitterText("good", "bad")
+         goodSynonyms = getSynonyms("good") + ["good"]
+         badSynonyms = getSynonyms("bad") + ["bad"]
       except:
-        print("Connection error...")
-        continue
-        
-      wordScores = getWordScores(twitterGoodtext, twitterBadtext)
+         print("Connection error...")
+         continue
+         
+      wordScores = getWordScores(goodSynonyms, badSynonyms)
+      if not wordScores:
+         print("Connection error...")
+         continue
          
       badGoodScoreRatio = getBadGoodRatio(wordScores)
       newWordScores = getNewWordScores(badGoodScoreRatio, wordScores, lastWordScores)

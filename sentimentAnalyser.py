@@ -1,10 +1,11 @@
+import tweepy
 import json
 import string
 import re
 import sys
 
 
-wordScoresFilePath = "/home/pimania/projects/sentimentAnalysis/wordScores.txt"
+wordScoresFilePath = "/home/ap/wordScores.txt"
 regex = re.compile('[%s]' % re.escape(string.punctuation))
 
 def getWordScores(wordScoresFilePath):
@@ -74,7 +75,7 @@ if functionName == "1":
    
 elif functionName == "2":
    totalGoodScore, totalBadScore, amountOfGoodWords, amountOfBadWords = getSentimentStatistics(wordScores)
-   print("Total good score: " + str(totalGoodScore) + "\nTotal bad score: " + str(totalBadScore) + "\nAmount of good words: " + str(amountOfGoodWords) + "\nAmount of bad words: " + str(amountOfBadWords))
+   print("Total good score: " + str(totalGoodScore) + "\nTotal bad score: " + str(totalBadScore) + "\Amount of good words: " + str(amountOfGoodWords) + "\nAmount of bad words: " + str(amountOfBadWords))
    
 elif functionName == "3":
    wordCount = int(input("Enter how many extreme words you would like to see: "))
